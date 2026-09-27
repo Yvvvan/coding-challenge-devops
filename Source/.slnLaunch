@@ -1,0 +1,17 @@
+[
+  {
+	"Name": "Api + Web",
+	"Projects": [
+	  {
+		"Path": "src\\CodingChallenge.Api\\CodingChallenge.Api.csproj",
+		"Action": "Start",
+		"DebugTarget": "http"
+	  },
+	  {
+		"Path": "src\\CodingChallenge.Web\\CodingChallenge.Web.csproj",
+		"Action": "Start",
+		"DebugTarget": "http"
+	  }
+	]
+  }
+]

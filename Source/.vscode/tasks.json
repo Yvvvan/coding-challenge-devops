@@ -1,0 +1,69 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build (solution)",
+            "type": "process",
+            "command": "dotnet",
+            "args": ["build", "${workspaceFolder}/CodingChallenge.slnx"],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "test (solution)",
+            "type": "process",
+            "command": "dotnet",
+            "args": ["test", "${workspaceFolder}/tests/CodingChallenge.Tests/CodingChallenge.Tests.csproj"],
+            "problemMatcher": "$msCompile",
+            "group": "test"
+        },
+        {
+            "label": "run API",
+            "type": "process",
+            "command": "dotnet",
+            "args": ["run", "--project", "${workspaceFolder}/src/CodingChallenge.Api/CodingChallenge.Api.csproj"],
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^.*Building.*$",
+                    "endsPattern": "^.*Application started.*$"
+                }
+            },
+            "presentation": {
+                "panel": "dedicated",
+                "group": "run-all"
+            }
+        },
+        {
+            "label": "run Web",
+            "type": "process",
+            "command": "dotnet",
+            "args": ["run", "--project", "${workspaceFolder}/src/CodingChallenge.Web/CodingChallenge.Web.csproj"],
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^.*Building.*$",
+                    "endsPattern": "^.*Application started.*$"
+                }
+            },
+            "presentation": {
+                "panel": "dedicated",
+                "group": "run-all"
+            }
+        },
+        {
+            "label": "run all (API + Web)",
+            "dependsOn": ["run API", "run Web"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        }
+    ]
+}

@@ -1,0 +1,166 @@
+.header-inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* First bar: brand and session */
+.header-top {
+    background-color: #fff;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    color: #373B3E;
+    text-decoration: none;
+}
+
+    .navbar-brand:hover {
+        text-decoration: none;
+    }
+
+.brand-logo {
+    height: 2.4rem;
+    width: auto;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    border-left: 1px solid #DEDFE1;
+    padding-left: 0.75rem;
+}
+
+.brand-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.brand-claim {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: #97A0A5;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.header-session {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.session-user {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #97A0A5;
+}
+
+.header-session ::deep .session-link {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5c666b;
+    text-decoration: none;
+}
+
+    .header-session ::deep .session-link:hover {
+        color: #AB3127;
+    }
+
+.navbar-toggler,
+.navbar-toggler-icon {
+    display: none;
+}
+
+/* Second bar: main navigation */
+.header-nav {
+    background-color: #EAECED;
+    border-top: 1px solid #DEDFE1;
+}
+
+.nav-scrollable {
+    display: flex;
+    align-items: stretch;
+    gap: 0.25rem;
+}
+
+.nav-item {
+    display: flex;
+    align-items: stretch;
+}
+
+.nav-item ::deep .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5c666b;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out;
+}
+
+.nav-item ::deep .nav-link.active {
+    background-color: #fff;
+    color: #AB3127;
+    border-bottom-color: #AB3127;
+}
+
+.nav-item ::deep .nav-link:hover {
+    color: #AB3127;
+    border-bottom-color: #c8ced1;
+    text-decoration: none;
+}
+
+@media (max-width: 900px) {
+    .header-inner {
+        gap: 0.75rem;
+    }
+
+    .navbar-toggler-icon {
+        display: block;
+        width: 2rem;
+        height: 2rem;
+        cursor: pointer;
+        background: linear-gradient(#373B3E, #373B3E) center/100% 2px no-repeat, linear-gradient(#373B3E, #373B3E) center top 0.4rem/100% 2px no-repeat, linear-gradient(#373B3E, #373B3E) center bottom 0.4rem/100% 2px no-repeat;
+    }
+
+    .header-nav {
+        display: none;
+    }
+
+    .navbar-toggler:checked ~ .header-nav {
+        display: block;
+    }
+
+    .nav-scrollable {
+        flex-direction: column;
+        padding-bottom: 0.5rem;
+    }
+
+    .nav-item ::deep .nav-link {
+        padding: 0.6rem 0 0.6rem 0.75rem;
+        border-bottom: none;
+        border-left: 3px solid transparent;
+    }
+
+    .nav-item ::deep .nav-link.active {
+        border-left-color: #AB3127;
+    }
+}

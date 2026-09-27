@@ -1,0 +1,213 @@
+@page "/orders"
+@inject CodingChallenge.Web.ApiClients.OrdersApiClient OrdersApi
+@inject CodingChallenge.Web.ApiClients.BoardsApiClient BoardsApi
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Orders</PageTitle>
+
+<h1>Orders</h1>
+
+<div class="mb-3 d-flex gap-2">
+    <input class="form-control" style="max-width: 300px" placeholder="Search orders..." @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
+    <button class="btn btn-primary" @onclick="ShowCreateForm">New Order</button>
+</div>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+
+@if (_orders is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Order Date</th>
+                <th>Status</th>
+                <th>Boards</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in _orders)
+            {
+                <tr>
+                    <td>@order.Name</td>
+                    <td>@order.Description</td>
+                    <td>@order.OrderDate.ToShortDateString()</td>
+                    <td>@order.Status</td>
+                    <td>@string.Join(", ", order.Boards.Select(b => b.Name))</td>
+                    <td class="d-flex gap-1">
+                        <button class="btn btn-sm btn-secondary" @onclick="() => ShowEditForm(order)">Edit</button>
+                        <button class="btn btn-sm btn-outline-primary" @onclick="() => Download(order.Id)">Download</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(order.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (_editModel is not null)
+{
+    <div class="card p-3 mt-3" style="max-width: 500px">
+        <h3>@(_editingId is null ? "New Order" : "Edit Order")</h3>
+        <EditForm Model="_editModel" OnValidSubmit="Save">
+            <div class="mb-2">
+                <label>Name</label>
+                <InputText class="form-control" @bind-Value="_editModel.Name" />
+            </div>
+            <div class="mb-2">
+                <label>Description</label>
+                <InputTextArea class="form-control" @bind-Value="_editModel.Description" />
+            </div>
+            <div class="mb-2">
+                <label>Order Date</label>
+                <InputDate class="form-control" @bind-Value="_editModel.OrderDate" />
+            </div>
+            <div class="mb-2">
+                <label>Boards</label>
+                @foreach (var board in _availableBoards)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox"
+                               checked="@_editModel.BoardIds.Contains(board.Id)"
+                               @onchange="e => ToggleBoard(board.Id, (bool)e.Value!)" />
+                        <label class="form-check-label">@board.Name</label>
+                    </div>
+                }
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-link" @onclick="CancelEdit">Cancel</button>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private List<OrderDto>? _orders;
+    private List<BoardSummaryDto> _availableBoards = new();
+    private string _searchTerm = string.Empty;
+    private string? _errorMessage;
+    private int? _editingId;
+    private OrderEditModel? _editModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrders();
+        var boards = await BoardsApi.GetAllAsync();
+        _availableBoards = boards.Select(b => new BoardSummaryDto(b.Id, b.Name, b.Length, b.Width)).ToList();
+    }
+
+    private async Task LoadOrders()
+    {
+        _orders = await OrdersApi.GetAllAsync(_searchTerm);
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        await LoadOrders();
+    }
+
+    private void ShowCreateForm()
+    {
+        _errorMessage = null;
+        _editingId = null;
+        _editModel = new OrderEditModel { OrderDate = DateTime.Today };
+    }
+
+    private void ShowEditForm(OrderDto order)
+    {
+        _errorMessage = null;
+        _editingId = order.Id;
+        _editModel = new OrderEditModel
+        {
+            Name = order.Name,
+            Description = order.Description,
+            OrderDate = order.OrderDate,
+            BoardIds = order.Boards.Select(b => b.Id).ToList()
+        };
+    }
+
+    private void CancelEdit()
+    {
+        _editModel = null;
+        _editingId = null;
+    }
+
+    private void ToggleBoard(int boardId, bool isChecked)
+    {
+        if (_editModel is null)
+        {
+            return;
+        }
+
+        if (isChecked && !_editModel.BoardIds.Contains(boardId))
+        {
+            _editModel.BoardIds.Add(boardId);
+        }
+        else if (!isChecked)
+        {
+            _editModel.BoardIds.Remove(boardId);
+        }
+    }
+
+    private async Task Save()
+    {
+        if (_editModel is null)
+        {
+            return;
+        }
+
+        if (_editingId is null)
+        {
+            await OrdersApi.CreateAsync(new OrderCreateDto(_editModel.Name, _editModel.Description, _editModel.OrderDate, _editModel.BoardIds));
+        }
+        else
+        {
+            await OrdersApi.UpdateAsync(_editingId.Value, new OrderUpdateDto(_editModel.Name, _editModel.Description, _editModel.OrderDate, _editModel.BoardIds));
+        }
+
+        CancelEdit();
+        await LoadOrders();
+    }
+
+    private async Task Delete(int id)
+    {
+        _errorMessage = null;
+        var success = await OrdersApi.DeleteAsync(id);
+        if (!success)
+        {
+            _errorMessage = "Could not delete the order.";
+        }
+
+        await LoadOrders();
+    }
+
+    private async Task Download(int id)
+    {
+        var result = await OrdersApi.DownloadAsync(id);
+        if (result is null)
+        {
+            _errorMessage = "Could not download the order.";
+            return;
+        }
+
+        var base64 = Convert.ToBase64String(result.Value.Content);
+        await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", result.Value.FileName, "application/json", base64);
+        await LoadOrders();
+    }
+
+    private class OrderEditModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public DateTime OrderDate { get; set; } = DateTime.Today;
+        public List<int> BoardIds { get; set; } = new();
+    }
+}

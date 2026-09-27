@@ -1,0 +1,221 @@
+@page "/boards"
+@inject CodingChallenge.Web.ApiClients.BoardsApiClient BoardsApi
+@inject CodingChallenge.Web.ApiClients.ComponentsApiClient ComponentsApi
+@inject CodingChallenge.Web.ApiClients.AdminApiClient AdminApi
+
+<PageTitle>Boards</PageTitle>
+
+<h1>Boards</h1>
+
+<div class="mb-3 d-flex gap-2">
+    <input class="form-control" style="max-width: 300px" placeholder="Search boards..." @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
+    <button class="btn btn-primary" @onclick="ShowCreateForm">New Board</button>
+    <button class="btn btn-outline-secondary" @onclick="SeedLargeDataset" disabled="@_seeding">
+        @(_seeding ? "Seeding..." : "Seed Large Dataset (50k Components)")
+    </button>
+</div>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+@if (_infoMessage is not null)
+{
+    <div class="alert alert-info">@_infoMessage</div>
+}
+
+@if (_boards is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Length</th>
+                <th>Width</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var board in _boards)
+            {
+                <tr>
+                    <td>@board.Name</td>
+                    <td>@board.Description</td>
+                    <td>@board.Length</td>
+                    <td>@board.Width</td>
+                    <td class="d-flex gap-1">
+                        <button class="btn btn-sm btn-secondary" @onclick="() => ShowEditForm(board)">Edit</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => Delete(board.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (_editModel is not null)
+{
+    <div class="card p-3 mt-3" style="max-width: 500px">
+        <h3>@(_editingId is null ? "New Board" : "Edit Board")</h3>
+        <EditForm Model="_editModel" OnValidSubmit="Save">
+            <div class="mb-2">
+                <label>Name</label>
+                <InputText class="form-control" @bind-Value="_editModel.Name" />
+            </div>
+            <div class="mb-2">
+                <label>Description</label>
+                <InputTextArea class="form-control" @bind-Value="_editModel.Description" />
+            </div>
+            <div class="mb-2">
+                <label>Length</label>
+                <InputNumber class="form-control" @bind-Value="_editModel.Length" />
+            </div>
+            <div class="mb-2">
+                <label>Width</label>
+                <InputNumber class="form-control" @bind-Value="_editModel.Width" />
+            </div>
+            <div class="mb-2">
+                <label>Components</label>
+                @foreach (var component in _availableComponents)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox"
+                               checked="@_editModel.ComponentIds.Contains(component.Id)"
+                               @onchange="e => ToggleComponent(component.Id, (bool)e.Value!)" />
+                        <label class="form-check-label">@component.Name</label>
+                    </div>
+                }
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-link" @onclick="CancelEdit">Cancel</button>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private List<BoardDto>? _boards;
+    private List<ComponentSummaryDto> _availableComponents = new();
+    private string _searchTerm = string.Empty;
+    private string? _errorMessage;
+    private string? _infoMessage;
+    private bool _seeding;
+    private int? _editingId;
+    private BoardEditModel? _editModel;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBoards();
+        var components = await ComponentsApi.GetAllAsync();
+        _availableComponents = components.Select(c => new ComponentSummaryDto(c.Id, c.Name, c.Quantity)).ToList();
+    }
+
+    private async Task LoadBoards()
+    {
+        _boards = await BoardsApi.GetAllAsync(_searchTerm);
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        await LoadBoards();
+    }
+
+    private void ShowCreateForm()
+    {
+        _errorMessage = null;
+        _editingId = null;
+        _editModel = new BoardEditModel();
+    }
+
+    private void ShowEditForm(BoardDto board)
+    {
+        _errorMessage = null;
+        _editingId = board.Id;
+        _editModel = new BoardEditModel
+        {
+            Name = board.Name,
+            Description = board.Description,
+            Length = board.Length,
+            Width = board.Width,
+            ComponentIds = board.Components.Select(c => c.Id).ToList()
+        };
+    }
+
+    private void CancelEdit()
+    {
+        _editModel = null;
+        _editingId = null;
+    }
+
+    private void ToggleComponent(int componentId, bool isChecked)
+    {
+        if (_editModel is null)
+        {
+            return;
+        }
+
+        if (isChecked && !_editModel.ComponentIds.Contains(componentId))
+        {
+            _editModel.ComponentIds.Add(componentId);
+        }
+        else if (!isChecked)
+        {
+            _editModel.ComponentIds.Remove(componentId);
+        }
+    }
+
+    private async Task Save()
+    {
+        if (_editModel is null)
+        {
+            return;
+        }
+
+        if (_editingId is null)
+        {
+            await BoardsApi.CreateAsync(new BoardCreateDto(_editModel.Name, _editModel.Description, _editModel.Length, _editModel.Width, _editModel.ComponentIds));
+        }
+        else
+        {
+            await BoardsApi.UpdateAsync(_editingId.Value, new BoardUpdateDto(_editModel.Name, _editModel.Description, _editModel.Length, _editModel.Width, _editModel.ComponentIds));
+        }
+
+        CancelEdit();
+        await LoadBoards();
+    }
+
+    private async Task Delete(int id)
+    {
+        _errorMessage = null;
+        var (success, error) = await BoardsApi.DeleteAsync(id);
+        if (!success)
+        {
+            _errorMessage = error ?? "Could not delete the board.";
+        }
+
+        await LoadBoards();
+    }
+
+    private async Task SeedLargeDataset()
+    {
+        _seeding = true;
+        _infoMessage = null;
+        var seeded = await AdminApi.SeedLargeDatasetAsync();
+        _infoMessage = seeded ? "Large stress-test dataset seeded." : "Large stress-test dataset already existed.";
+        _seeding = false;
+        await LoadBoards();
+    }
+
+    private class BoardEditModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public double Length { get; set; }
+        public double Width { get; set; }
+        public List<int> ComponentIds { get; set; } = new();
+    }
+}
