@@ -89,13 +89,9 @@ public class ComponentManager : IComponentManager
 
     public async Task<List<Component>> GetByBoardIdAsync(int boardId)
     {
-        // Components carry their board links via BoardComponents, so pull the catalog with links attached and match up in-memory.
-        var allComponents = await _context.Components
-            .Include(c => c.BoardComponents)
-            .ToListAsync();
-
-        return allComponents
+        return await _context.Components
             .Where(c => c.BoardComponents.Any(bc => bc.BoardId == boardId))
-            .ToList();
+            .AsNoTracking()
+            .ToListAsync();
     }
 }
