@@ -21,7 +21,7 @@
             "label": "run API",
             "type": "process",
             "command": "dotnet",
-            "args": ["run", "--project", "${workspaceFolder}/src/CodingChallenge.Api/CodingChallenge.Api.csproj"],
+            "args": ["run", "--project", "${workspaceFolder}/src/CodingChallenge.Api/CodingChallenge.Api.csproj", "--launch-profile", "http"],
             "isBackground": true,
             "problemMatcher": {
                 "pattern": {
@@ -42,7 +42,7 @@
             "label": "run Web",
             "type": "process",
             "command": "dotnet",
-            "args": ["run", "--project", "${workspaceFolder}/src/CodingChallenge.Web/CodingChallenge.Web.csproj"],
+            "args": ["run", "--project", "${workspaceFolder}/src/CodingChallenge.Web/CodingChallenge.Web.csproj", "--launch-profile", "http"],
             "isBackground": true,
             "problemMatcher": {
                 "pattern": {
