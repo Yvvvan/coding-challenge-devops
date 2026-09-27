@@ -50,6 +50,26 @@ public class ComponentManagerTests
     }
 
     [Test]
+    public async Task GetByBoardIdAsync_DoesNotTrackReadOnlyComponentCatalog()
+    {
+        var linked = new Component { Name = "Linked", Quantity = 1 };
+        var unrelated = new Component { Name = "Unrelated", Quantity = 1 };
+        var board = new Board { Name = "Board 1", Length = 1, Width = 1 };
+        _context.Components.AddRange(linked, unrelated);
+        _context.Boards.Add(board);
+        await _context.SaveChangesAsync();
+
+        _context.BoardComponents.Add(new BoardComponent { BoardId = board.Id, ComponentId = linked.Id });
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var result = await _sut.GetByBoardIdAsync(board.Id);
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.That(_context.ChangeTracker.Entries(), Is.Empty);
+    }
+
+    [Test]
     public async Task DeleteAsync_ReturnsFalse_WhenComponentDoesNotExist()
     {
         var result = await _sut.DeleteAsync(999);
