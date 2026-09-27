@@ -50,7 +50,14 @@ public class BoardsController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var deleted = await _boardService.DeleteAsync(id);
-        return deleted ? NoContent() : NotFound();
+        try
+        {
+            var deleted = await _boardService.DeleteAsync(id);
+            return deleted ? NoContent() : NotFound();
+        }
+        catch (BoardInUseException ex)
+        {
+            return Conflict(ex.Message);
+        }
     }
 }
