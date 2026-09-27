@@ -70,6 +70,38 @@ public class ComponentManagerTests
     }
 
     [Test]
+    public async Task SearchAsync_FiltersByNameOrDescription()
+    {
+        _context.Components.AddRange(
+            new Component { Name = "Resistor", Description = "1k ohm", Quantity = 10 },
+            new Component { Name = "Capacitor", Description = "ceramic sensor filter", Quantity = 5 },
+            new Component { Name = "LED", Description = "status light", Quantity = 2 });
+        await _context.SaveChangesAsync();
+
+        var byName = await _sut.SearchAsync("Resistor");
+        var byDescription = await _sut.SearchAsync("sensor");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(byName.Select(c => c.Name), Is.EqualTo(new[] { "Resistor" }));
+            Assert.That(byDescription.Select(c => c.Name), Is.EqualTo(new[] { "Capacitor" }));
+        });
+    }
+
+    [Test]
+    public async Task DeleteAsync_RemovesComponent_WhenExists()
+    {
+        var component = new Component { Name = "Temporary", Quantity = 1 };
+        _context.Components.Add(component);
+        await _context.SaveChangesAsync();
+
+        var result = await _sut.DeleteAsync(component.Id);
+
+        Assert.That(result, Is.True);
+        Assert.That(await _context.Components.FindAsync(component.Id), Is.Null);
+    }
+
+    [Test]
     public async Task DeleteAsync_ReturnsFalse_WhenComponentDoesNotExist()
     {
         var result = await _sut.DeleteAsync(999);
