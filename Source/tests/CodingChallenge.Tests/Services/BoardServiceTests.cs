@@ -101,8 +101,44 @@ public class BoardServiceTests
         _boardManager.Setup(m => m.GetByIdAsync(board.Id)).ReturnsAsync(board);
         _boardManager.Setup(m => m.DeleteAsync(board.Id)).ReturnsAsync(true);
 
-        Assert.ThrowsAsync<InvalidOperationException>(() => _sut.DeleteAsync(board.Id));
+        var ex = Assert.ThrowsAsync<BoardInUseException>(() => _sut.DeleteAsync(board.Id));
+
+        Assert.That(ex!.BoardId, Is.EqualTo(board.Id));
         _boardManager.Verify(m => m.DeleteAsync(board.Id), Times.Never);
+    }
+
+    [Test]
+    public async Task DeleteAsync_AllowsBoardReferencedOnlyByDownloadedOrders()
+    {
+        var order = new Order { Id = 1, Name = "Downloaded Order", Status = OrderStatus.Downloaded };
+        var board = new Board
+        {
+            Id = 2,
+            Name = "Board 2",
+            OrderBoards = new List<OrderBoard>
+            {
+                new OrderBoard { OrderId = order.Id, BoardId = 2, Order = order }
+            }
+        };
+
+        _boardManager.Setup(m => m.GetByIdAsync(board.Id)).ReturnsAsync(board);
+        _boardManager.Setup(m => m.DeleteAsync(board.Id)).ReturnsAsync(true);
+
+        var result = await _sut.DeleteAsync(board.Id);
+
+        Assert.That(result, Is.True);
+        _boardManager.Verify(m => m.DeleteAsync(board.Id), Times.Once);
+    }
+
+    [Test]
+    public async Task DeleteAsync_ReturnsFalse_WhenBoardDoesNotExist()
+    {
+        _boardManager.Setup(m => m.GetByIdAsync(999)).ReturnsAsync((Board?)null);
+
+        var result = await _sut.DeleteAsync(999);
+
+        Assert.That(result, Is.False);
+        _boardManager.Verify(m => m.DeleteAsync(It.IsAny<int>()), Times.Never);
     }
 
     [Test]

@@ -98,6 +98,19 @@ public class BoardService : IBoardService
 
     public async Task<bool> DeleteAsync(int id)
     {
+        var board = await _boardManager.GetByIdAsync(id);
+        if (board is null)
+        {
+            return false;
+        }
+
+        var hasActiveOrder = board.OrderBoards.Any(ob => ob.Order.Status == OrderStatus.Active);
+        if (hasActiveOrder)
+        {
+            _logger.LogWarning("Blocked deletion of board {BoardId} because it is referenced by an active order", id);
+            throw new BoardInUseException(id);
+        }
+
         var deleted = await _boardManager.DeleteAsync(id);
         if (deleted)
         {
