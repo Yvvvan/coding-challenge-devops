@@ -74,6 +74,48 @@ public class BoardServiceTests
     }
 
     [Test]
+    public void CreateAsync_RejectsBoardWithoutComponents()
+    {
+        var dto = new BoardCreateDto("Board without components", null, 100, 50, new List<int>());
+        var created = new Board { Id = 10, Name = dto.Name, Length = dto.Length, Width = dto.Width };
+
+        _boardManager.Setup(m => m.AddAsync(It.IsAny<Board>())).ReturnsAsync(created);
+        _boardManager.Setup(m => m.GetByIdAsync(created.Id)).ReturnsAsync(created);
+        _componentManager.Setup(m => m.GetByBoardIdAsync(created.Id)).ReturnsAsync(new List<Component>());
+
+        Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateAsync(dto));
+        _boardManager.Verify(m => m.AddAsync(It.IsAny<Board>()), Times.Never);
+    }
+
+    [Test]
+    public void CreateAsync_RejectsNegativeLength()
+    {
+        var dto = new BoardCreateDto("Invalid Board", null, -1, 50, new List<int> { 1 });
+        var created = new Board { Id = 11, Name = dto.Name, Length = dto.Length, Width = dto.Width };
+
+        _boardManager.Setup(m => m.AddAsync(It.IsAny<Board>())).ReturnsAsync(created);
+        _boardManager.Setup(m => m.GetByIdAsync(created.Id)).ReturnsAsync(created);
+        _componentManager.Setup(m => m.GetByBoardIdAsync(created.Id)).ReturnsAsync(new List<Component>());
+
+        Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => _sut.CreateAsync(dto));
+        _boardManager.Verify(m => m.AddAsync(It.IsAny<Board>()), Times.Never);
+    }
+
+    [Test]
+    public void CreateAsync_RejectsNegativeWidth()
+    {
+        var dto = new BoardCreateDto("Invalid Board", null, 100, -1, new List<int> { 1 });
+        var created = new Board { Id = 12, Name = dto.Name, Length = dto.Length, Width = dto.Width };
+
+        _boardManager.Setup(m => m.AddAsync(It.IsAny<Board>())).ReturnsAsync(created);
+        _boardManager.Setup(m => m.GetByIdAsync(created.Id)).ReturnsAsync(created);
+        _componentManager.Setup(m => m.GetByBoardIdAsync(created.Id)).ReturnsAsync(new List<Component>());
+
+        Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => _sut.CreateAsync(dto));
+        _boardManager.Verify(m => m.AddAsync(It.IsAny<Board>()), Times.Never);
+    }
+
+    [Test]
     public async Task UpdateAsync_ReturnsNull_WhenBoardDoesNotExist()
     {
         _boardManager.Setup(m => m.UpdateAsync(It.IsAny<Board>())).ReturnsAsync((Board?)null);

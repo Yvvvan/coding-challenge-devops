@@ -42,6 +42,25 @@ public class OrderServiceTests
     }
 
     [Test]
+    public void CreateAsync_RejectsOrderWithoutBoards()
+    {
+        var dto = new OrderCreateDto("Order without boards", null, DateTime.UtcNow, new List<int>());
+        var created = new Order
+        {
+            Id = 10,
+            Name = dto.Name,
+            OrderDate = dto.OrderDate,
+            Status = OrderStatus.Active
+        };
+
+        _orderManager.Setup(m => m.AddAsync(It.IsAny<Order>())).ReturnsAsync(created);
+        _orderManager.Setup(m => m.GetByIdAsync(created.Id)).ReturnsAsync(created);
+
+        Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateAsync(dto));
+        _orderManager.Verify(m => m.AddAsync(It.IsAny<Order>()), Times.Never);
+    }
+
+    [Test]
     public async Task UpdateAsync_ReturnsNull_WhenOrderDoesNotExist()
     {
         _orderManager.Setup(m => m.GetByIdAsync(99)).ReturnsAsync((Order?)null);

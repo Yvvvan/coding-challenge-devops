@@ -66,6 +66,18 @@ public class ComponentServiceTests
     }
 
     [Test]
+    public void CreateAsync_RejectsNegativeQuantity()
+    {
+        var dto = new ComponentCreateDto("Invalid Component", null, -1);
+        var created = new Component { Id = 10, Name = dto.Name, Quantity = dto.Quantity };
+
+        _componentManager.Setup(m => m.AddAsync(It.IsAny<Component>())).ReturnsAsync(created);
+
+        Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => _sut.CreateAsync(dto));
+        _componentManager.Verify(m => m.AddAsync(It.IsAny<Component>()), Times.Never);
+    }
+
+    [Test]
     public async Task UpdateAsync_ReturnsNull_WhenComponentDoesNotExist()
     {
         _componentManager.Setup(m => m.UpdateAsync(It.IsAny<Component>())).ReturnsAsync((Component?)null);
