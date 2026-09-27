@@ -85,6 +85,27 @@ public class BoardServiceTests
     }
 
     [Test]
+    public void DeleteAsync_RejectsBoardReferencedByActiveOrder()
+    {
+        var order = new Order { Id = 1, Name = "Active Order", Status = OrderStatus.Active };
+        var board = new Board
+        {
+            Id = 2,
+            Name = "Board 2",
+            OrderBoards = new List<OrderBoard>
+            {
+                new OrderBoard { OrderId = order.Id, BoardId = 2, Order = order }
+            }
+        };
+
+        _boardManager.Setup(m => m.GetByIdAsync(board.Id)).ReturnsAsync(board);
+        _boardManager.Setup(m => m.DeleteAsync(board.Id)).ReturnsAsync(true);
+
+        Assert.ThrowsAsync<InvalidOperationException>(() => _sut.DeleteAsync(board.Id));
+        _boardManager.Verify(m => m.DeleteAsync(board.Id), Times.Never);
+    }
+
+    [Test]
     public async Task SearchAsync_ReturnsMatchingBoards()
     {
         _boardManager.Setup(m => m.SearchAsync("Sensor")).ReturnsAsync(new List<Board>
