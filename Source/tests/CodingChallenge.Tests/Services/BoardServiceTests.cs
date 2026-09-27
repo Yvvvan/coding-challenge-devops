@@ -85,6 +85,35 @@ public class BoardServiceTests
     }
 
     [Test]
+    public async Task UpdateAsync_UpdatesBoardAndComponentLinks()
+    {
+        var dto = new BoardUpdateDto("Updated Board", "updated", 200, 100, new List<int> { 7, 8 });
+        var updated = new Board
+        {
+            Id = 2,
+            Name = dto.Name,
+            Description = dto.Description,
+            Length = dto.Length,
+            Width = dto.Width
+        };
+
+        _boardManager.Setup(m => m.UpdateAsync(It.IsAny<Board>())).ReturnsAsync(updated);
+        _boardManager.Setup(m => m.GetByIdAsync(2)).ReturnsAsync(updated);
+        _componentManager.Setup(m => m.GetByBoardIdAsync(2)).ReturnsAsync(new List<Component>());
+
+        var result = await _sut.UpdateAsync(2, dto);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result!.Name, Is.EqualTo("Updated Board"));
+            Assert.That(result.Length, Is.EqualTo(200));
+            Assert.That(result.Width, Is.EqualTo(100));
+        });
+        _boardManager.Verify(m => m.SetComponentsAsync(2, dto.ComponentIds), Times.Once);
+    }
+
+    [Test]
     public void DeleteAsync_RejectsBoardReferencedByActiveOrder()
     {
         var order = new Order { Id = 1, Name = "Active Order", Status = OrderStatus.Active };
