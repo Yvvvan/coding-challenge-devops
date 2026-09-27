@@ -81,15 +81,16 @@ else
             </div>
             <div class="mb-2">
                 <label>Components</label>
-                @foreach (var component in _availableComponents)
-                {
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox"
-                               checked="@_editModel.ComponentIds.Contains(component.Id)"
-                               @onchange="e => ToggleComponent(component.Id, (bool)e.Value!)" />
-                        <label class="form-check-label">@component.Name</label>
-                    </div>
-                }
+                <div style="height: 320px; overflow-y: auto;">
+                    <Virtualize Items="_availableComponents" Context="component">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                   checked="@_editModel.ComponentIds.Contains(component.Id)"
+                                   @onchange="e => ToggleComponent(component.Id, (bool)e.Value!)" />
+                            <label class="form-check-label">@component.Name</label>
+                        </div>
+                    </Virtualize>
+                </div>
             </div>
             <button type="submit" class="btn btn-primary">Save</button>
             <button type="button" class="btn btn-link" @onclick="CancelEdit">Cancel</button>
@@ -110,8 +111,6 @@ else
     protected override async Task OnInitializedAsync()
     {
         await LoadBoards();
-        var components = await ComponentsApi.GetAllAsync();
-        _availableComponents = components.Select(c => new ComponentSummaryDto(c.Id, c.Name, c.Quantity)).ToList();
     }
 
     private async Task LoadBoards()
@@ -124,16 +123,18 @@ else
         await LoadBoards();
     }
 
-    private void ShowCreateForm()
+    private async Task ShowCreateForm()
     {
         _errorMessage = null;
+        await EnsureComponentsLoadedAsync();
         _editingId = null;
         _editModel = new BoardEditModel();
     }
 
-    private void ShowEditForm(BoardDto board)
+    private async Task ShowEditForm(BoardDto board)
     {
         _errorMessage = null;
+        await EnsureComponentsLoadedAsync();
         _editingId = board.Id;
         _editModel = new BoardEditModel
         {
@@ -143,6 +144,19 @@ else
             Width = board.Width,
             ComponentIds = board.Components.Select(c => c.Id).ToList()
         };
+    }
+
+    private async Task EnsureComponentsLoadedAsync()
+    {
+        if (_availableComponents.Count > 0)
+        {
+            return;
+        }
+
+        var components = await ComponentsApi.GetAllAsync();
+        _availableComponents = components
+            .Select(c => new ComponentSummaryDto(c.Id, c.Name, c.Quantity))
+            .ToList();
     }
 
     private void CancelEdit()
