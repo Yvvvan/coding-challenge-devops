@@ -1,10 +1,8 @@
 name: CI
 
 on:
-  push:
-  pull_request:
-    branches:
-      - main
+  workflow_call:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -42,7 +40,7 @@ jobs:
         run: dotnet test tests/CodingChallenge.Tests/CodingChallenge.Tests.csproj --configuration Release --no-build --verbosity normal
 
   container-build:
-    name: Build Docker images
+    name: Verify Docker images
     needs: build-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 20
