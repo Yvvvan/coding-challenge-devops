@@ -18,6 +18,18 @@ public class ComponentsApiClient
         return await _httpClient.GetFromJsonAsync<List<ComponentDto>>(url) ?? new();
     }
 
+    public async Task<ComponentPageDto> GetPageAsync(string? search, int page, int pageSize)
+    {
+        var query = $"page={page}&pageSize={pageSize}";
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query += $"&search={Uri.EscapeDataString(search)}";
+        }
+
+        return await _httpClient.GetFromJsonAsync<ComponentPageDto>($"api/components/paged?{query}")
+            ?? new ComponentPageDto(new List<ComponentDto>(), 0, page, pageSize, 0);
+    }
+
     public async Task<ComponentDto?> GetByIdAsync(int id)
     {
         var response = await _httpClient.GetAsync($"api/components/{id}");

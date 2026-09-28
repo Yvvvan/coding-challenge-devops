@@ -52,6 +52,31 @@ public class ComponentServiceTests
     }
 
     [Test]
+    public async Task GetPageAsync_MapsItemsAndCalculatesTotalPages()
+    {
+        var components = new List<Component>
+        {
+            new() { Id = 11, Name = "C11", Quantity = 1 },
+            new() { Id = 12, Name = "C12", Quantity = 2 }
+        };
+
+        _componentManager
+            .Setup(m => m.GetPageAsync("C", 2, 10))
+            .ReturnsAsync((components, 25));
+
+        var result = await _sut.GetPageAsync("C", page: 2, pageSize: 10);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Items, Has.Count.EqualTo(2));
+            Assert.That(result.TotalCount, Is.EqualTo(25));
+            Assert.That(result.Page, Is.EqualTo(2));
+            Assert.That(result.PageSize, Is.EqualTo(10));
+            Assert.That(result.TotalPages, Is.EqualTo(3));
+        });
+    }
+
+    [Test]
     public async Task CreateAsync_ReturnsCreatedComponent()
     {
         var dto = new ComponentCreateDto("Resistor", "1k ohm", 100);
