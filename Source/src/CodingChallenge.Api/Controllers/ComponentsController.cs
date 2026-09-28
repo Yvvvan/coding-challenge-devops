@@ -25,6 +25,19 @@ public class ComponentsController : ControllerBase
         return Ok(components);
     }
 
+    [HttpGet("paged")]
+    public async Task<ActionResult<ComponentPageDto>> GetPage(
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 500);
+
+        var result = await _componentService.GetPageAsync(search, page, pageSize);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ComponentDto>> GetById(int id)
     {

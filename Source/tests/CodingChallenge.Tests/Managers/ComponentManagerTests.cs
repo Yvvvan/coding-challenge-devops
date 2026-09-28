@@ -89,6 +89,48 @@ public class ComponentManagerTests
     }
 
     [Test]
+    public async Task GetPageAsync_ReturnsRequestedPageAndTotalCount()
+    {
+        for (var i = 1; i <= 25; i++)
+        {
+            _context.Components.Add(new Component { Name = $"Component {i:D2}", Quantity = i });
+        }
+
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var (items, totalCount) = await _sut.GetPageAsync(null, page: 2, pageSize: 10);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(totalCount, Is.EqualTo(25));
+            Assert.That(items, Has.Count.EqualTo(10));
+            Assert.That(items[0].Name, Is.EqualTo("Component 11"));
+            Assert.That(items[^1].Name, Is.EqualTo("Component 20"));
+            Assert.That(_context.ChangeTracker.Entries(), Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task GetPageAsync_FiltersBeforePaging()
+    {
+        _context.Components.AddRange(
+            new Component { Name = "Sensor A", Quantity = 1 },
+            new Component { Name = "Sensor B", Quantity = 1 },
+            new Component { Name = "Motor", Description = "Sensor drive", Quantity = 1 },
+            new Component { Name = "LED", Quantity = 1 });
+        await _context.SaveChangesAsync();
+
+        var (items, totalCount) = await _sut.GetPageAsync("Sensor", page: 1, pageSize: 2);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(totalCount, Is.EqualTo(3));
+            Assert.That(items, Has.Count.EqualTo(2));
+        });
+    }
+
+    [Test]
     public async Task DeleteAsync_RemovesComponent_WhenExists()
     {
         var component = new Component { Name = "Temporary", Quantity = 1 };

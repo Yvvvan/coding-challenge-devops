@@ -10,6 +10,7 @@ public interface IComponentService
     Task<List<ComponentDto>> GetAllAsync();
     Task<ComponentDto?> GetByIdAsync(int id);
     Task<List<ComponentDto>> SearchAsync(string? term);
+    Task<ComponentPageDto> GetPageAsync(string? term, int page, int pageSize);
     Task<ComponentDto> CreateAsync(ComponentCreateDto dto);
     Task<ComponentDto?> UpdateAsync(int id, ComponentUpdateDto dto);
     Task<bool> DeleteAsync(int id);
@@ -42,6 +43,19 @@ public class ComponentService : IComponentService
     {
         var components = await _componentManager.SearchAsync(term);
         return components.Select(c => ToDto(c, new List<BoardSummaryDto>())).ToList();
+    }
+
+    public async Task<ComponentPageDto> GetPageAsync(string? term, int page, int pageSize)
+    {
+        var (items, totalCount) = await _componentManager.GetPageAsync(term, page, pageSize);
+        var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        return new ComponentPageDto(
+            items.Select(c => ToDto(c, new List<BoardSummaryDto>())).ToList(),
+            totalCount,
+            page,
+            pageSize,
+            totalPages);
     }
 
     public async Task<ComponentDto> CreateAsync(ComponentCreateDto dto)

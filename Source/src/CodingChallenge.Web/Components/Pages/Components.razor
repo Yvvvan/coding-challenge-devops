@@ -21,6 +21,20 @@
 }
 else
 {
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">
+            @if (_totalCount == 0)
+            {
+                <span>No components found.</span>
+            }
+            else
+            {
+                <span>Showing @FirstItemNumber-@LastItemNumber of @_totalCount components</span>
+            }
+        </small>
+        <small class="text-muted">Page @_currentPage of @Math.Max(_totalPages, 1)</small>
+    </div>
+
     <table class="table table-striped">
         <thead>
             <tr>
@@ -45,6 +59,20 @@ else
             }
         </tbody>
     </table>
+
+    <div class="d-flex justify-content-center align-items-center gap-2 mb-3">
+        <button class="btn btn-sm btn-outline-secondary"
+                disabled="@(_currentPage <= 1)"
+                @onclick="PreviousPage">
+            Previous
+        </button>
+        <span>Page @_currentPage / @Math.Max(_totalPages, 1)</span>
+        <button class="btn btn-sm btn-outline-secondary"
+                disabled="@(_totalPages == 0 || _currentPage >= _totalPages)"
+                @onclick="NextPage">
+            Next
+        </button>
+    </div>
 }
 
 @if (_editModel is not null)
@@ -72,7 +100,11 @@ else
 
 @code {
     private List<ComponentDto>? _components;
+    private const int PageSize = 100;
     private string _searchTerm = string.Empty;
+    private int _currentPage = 1;
+    private int _totalCount;
+    private int _totalPages;
     private string? _errorMessage;
     private int? _editingId;
     private ComponentEditModel? _editModel;
@@ -84,13 +116,49 @@ else
 
     private async Task LoadComponents()
     {
-        _components = await ComponentsApi.GetAllAsync(_searchTerm);
+        var result = await ComponentsApi.GetPageAsync(_searchTerm, _currentPage, PageSize);
+
+        if (result.TotalPages > 0 && _currentPage > result.TotalPages)
+        {
+            _currentPage = result.TotalPages;
+            result = await ComponentsApi.GetPageAsync(_searchTerm, _currentPage, PageSize);
+        }
+
+        _components = result.Items;
+        _totalCount = result.TotalCount;
+        _totalPages = result.TotalPages;
     }
 
     private async Task OnSearchKeyUp(KeyboardEventArgs e)
     {
+        _currentPage = 1;
         await LoadComponents();
     }
+
+    private async Task PreviousPage()
+    {
+        if (_currentPage <= 1)
+        {
+            return;
+        }
+
+        _currentPage--;
+        await LoadComponents();
+    }
+
+    private async Task NextPage()
+    {
+        if (_totalPages == 0 || _currentPage >= _totalPages)
+        {
+            return;
+        }
+
+        _currentPage++;
+        await LoadComponents();
+    }
+
+    private int FirstItemNumber => _totalCount == 0 ? 0 : ((_currentPage - 1) * PageSize) + 1;
+    private int LastItemNumber => Math.Min(_currentPage * PageSize, _totalCount);
 
     private void ShowCreateForm()
     {

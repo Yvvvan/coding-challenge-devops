@@ -9,6 +9,7 @@ public interface IComponentManager
     Task<List<Component>> GetAllAsync();
     Task<Component?> GetByIdAsync(int id);
     Task<List<Component>> SearchAsync(string? term);
+    Task<(List<Component> Items, int TotalCount)> GetPageAsync(string? term, int page, int pageSize);
     Task<Component> AddAsync(Component component);
     Task<Component?> UpdateAsync(Component component);
     Task<bool> DeleteAsync(int id);
@@ -49,6 +50,25 @@ public class ComponentManager : IComponentManager
         }
 
         return await query.ToListAsync();
+    }
+
+    public async Task<(List<Component> Items, int TotalCount)> GetPageAsync(string? term, int page, int pageSize)
+    {
+        var query = _context.Components.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            query = query.Where(c => c.Name.Contains(term) || (c.Description != null && c.Description.Contains(term)));
+        }
+
+        var totalCount = await query.CountAsync();
+        var items = await query
+            .OrderBy(c => c.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
     }
 
     public async Task<Component> AddAsync(Component component)
