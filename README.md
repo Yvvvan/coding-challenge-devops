@@ -140,6 +140,59 @@ To also delete the persisted SQLite database and start from a clean state:
 docker compose down -v
 ```
 
+## CI, SBOM and CD
+
+The automation is split into three independent workflows.
+
+### CI
+
+Every push and pull request runs:
+
+```text
+Restore dependencies
+        ↓
+Build
+        ↓
+Run automated tests
+        ↓
+Build Docker images
+```
+
+The Docker images are built for verification only and are not published by CI.
+
+### SBOM
+
+Pushing a version tag such as `v1.0.0` generates a CycloneDX SBOM and uploads it as a GitHub Actions artifact.
+
+```text
+v1.0.0
+  ↓
+Generate CycloneDX SBOM
+  ↓
+Upload bom.json
+```
+
+### CD
+
+The same version tag independently triggers the CD workflow:
+
+```text
+v1.0.0
+  ↓
+Build API and Web Docker images
+  ↓
+Push images to GitHub Container Registry
+```
+
+The published images are:
+
+```text
+ghcr.io/yvvvan/coding-challenge-devops-api:<version>
+ghcr.io/yvvvan/coding-challenge-devops-web:<version>
+```
+
+Version-tag releases also publish the `latest` tag. Each image additionally receives a commit-SHA tag for traceability.
+
 ## Demo accounts
 
 Two demo users are configured for local development:
