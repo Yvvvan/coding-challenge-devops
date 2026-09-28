@@ -140,13 +140,24 @@ To also delete the persisted SQLite database and start from a clean state:
 docker compose down -v
 ```
 
-## CI, SBOM and CD
+## CI/CD pipeline
 
-The automation is split into three independent workflows.
+The automation uses one main pipeline with three reusable workflows:
 
-### CI
+```text
+pipeline.yml
+    │
+    ▼
+  ci.yml
+    │
+    ▼
+ sbom.yml
+    │
+    ▼
+  cd.yml
+```
 
-Every push and pull request runs:
+For every push and pull request, the main pipeline runs the CI workflow:
 
 ```text
 Restore dependencies
@@ -155,34 +166,24 @@ Build
         ↓
 Run automated tests
         ↓
-Build Docker images
+Verify Docker images
 ```
 
-The Docker images are built for verification only and are not published by CI.
-
-### SBOM
-
-Pushing a version tag such as `v1.0.0` generates a CycloneDX SBOM and uploads it as a GitHub Actions artifact.
+For a version tag such as `v1.0.0`, the same pipeline continues through the release stages:
 
 ```text
-v1.0.0
-  ↓
+CI
+ ↓
 Generate CycloneDX SBOM
-  ↓
+ ↓
 Upload bom.json
-```
-
-### CD
-
-The same version tag independently triggers the CD workflow:
-
-```text
-v1.0.0
-  ↓
+ ↓
 Build API and Web Docker images
-  ↓
+ ↓
 Push images to GitHub Container Registry
 ```
+
+The CI, SBOM, and CD workflows are reusable and can also be started independently from GitHub Actions.
 
 The published images are:
 
@@ -192,6 +193,8 @@ ghcr.io/yvvvan/coding-challenge-devops-web:<version>
 ```
 
 Version-tag releases also publish the `latest` tag. Each image additionally receives a commit-SHA tag for traceability.
+
+A manually started CD workflow publishes images with a `manual-<run-number>` tag.
 
 ## Demo accounts
 
