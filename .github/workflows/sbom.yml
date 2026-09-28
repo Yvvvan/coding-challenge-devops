@@ -1,0 +1,54 @@
+name: SBOM
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-sbom:
+    name: Generate CycloneDX SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            Source/src/**/*.csproj
+            Source/tests/**/*.csproj
+
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Restore dependencies
+        run: dotnet restore Source/CodingChallenge.slnx
+
+      - name: Generate CycloneDX SBOM
+        run: >
+          dotnet tool run dotnet-CycloneDX --
+          Source/CodingChallenge.slnx
+          --output artifacts/sbom
+          --output-format Json
+          --set-name coding-challenge-devops
+          --set-version "${{ github.ref_name }}"
+          --set-type Application
+          --disable-package-restore
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.ref_name }}
+          path: artifacts/sbom/bom.json
+          if-no-files-found: error
+          retention-days: 90
