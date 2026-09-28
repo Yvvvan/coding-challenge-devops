@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: coding-challenge-api-data
+  labels:
+    app: coding-challenge-api
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coding-challenge-api
+  labels:
+    app: coding-challenge-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coding-challenge-api
+  template:
+    metadata:
+      labels:
+        app: coding-challenge-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/yvvvan/coding-challenge-devops-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: ConnectionStrings__Default
+              value: "Data Source=/app/data/codingchallenge.db"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: api-data
+              mountPath: /app/data
+          readinessProbe:
+            httpGet:
+              path: /swagger/v1/swagger.json
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 12
+      volumes:
+        - name: api-data
+          persistentVolumeClaim:
+            claimName: coding-challenge-api-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coding-challenge-api
+  labels:
+    app: coding-challenge-api
+spec:
+  selector:
+    app: coding-challenge-api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

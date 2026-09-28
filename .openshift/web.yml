@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coding-challenge-web
+  labels:
+    app: coding-challenge-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coding-challenge-web
+  template:
+    metadata:
+      labels:
+        app: coding-challenge-web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/yvvvan/coding-challenge-devops-web:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: ApiBaseUrl
+              value: http://coding-challenge-api:8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 12
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coding-challenge-web
+  labels:
+    app: coding-challenge-web
+spec:
+  selector:
+    app: coding-challenge-web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: coding-challenge-web
+  labels:
+    app: coding-challenge-web
+spec:
+  to:
+    kind: Service
+    name: coding-challenge-web
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
