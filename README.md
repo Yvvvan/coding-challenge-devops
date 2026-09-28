@@ -2,11 +2,20 @@
 
 SMT order management application built with ASP.NET Core, Blazor, Entity Framework Core, and SQLite.
 
-## Prerequisites
+## Running the application
 
-### Install .NET SDK 10
+There are two ways to run the application locally:
 
-Open PowerShell as Administrator and install the .NET 10 SDK with WinGet:
+- Manual setup with the .NET SDK
+- Docker Compose
+
+## Option 1: Manual setup with .NET
+
+### Requirements
+
+Install the .NET 10 SDK.
+
+Open PowerShell as Administrator and run:
 
 ```powershell
 winget install Microsoft.DotNet.SDK.10 --source winget
@@ -18,12 +27,9 @@ After installation, open a new PowerShell window and verify the installed SDK:
 dotnet --version
 ```
 
-
-## Run the application locally
-
-Open PowerShell in the repository root.
-
 ### 1. Restore dependencies
+
+Open PowerShell in the repository root:
 
 ```powershell
 cd .\Source
@@ -32,7 +38,7 @@ dotnet restore .\CodingChallenge.slnx
 
 ### 2. Start the API
 
-Open a PowerShell terminal in `Source` and run:
+In the same PowerShell terminal:
 
 ```powershell
 dotnet run --project .\src\CodingChallenge.Api\CodingChallenge.Api.csproj --launch-profile http
@@ -65,6 +71,128 @@ http://localhost:5001
 
 Open that address in a browser.
 
+### Stop the manually started application
+
+Press:
+
+```text
+Ctrl+C
+```
+
+in each PowerShell terminal running the API or Web application.
+
+## Option 2: Docker Compose
+
+Docker Compose starts the Web application, API, and persistent SQLite storage together.
+
+### Requirements
+
+Install Docker Desktop with Docker Compose support.
+
+Verify Docker in PowerShell:
+
+```powershell
+docker --version
+docker compose version
+```
+
+### Start the application
+
+From the repository root:
+
+```powershell
+docker compose up --build
+```
+
+Or run it in the background:
+
+```powershell
+docker compose up --build -d
+```
+
+Open the Web application at:
+
+```text
+http://localhost:5001
+```
+
+The API is available at:
+
+```text
+http://localhost:5220
+```
+
+The Web container communicates with the API container through the internal Docker network. SQLite remains embedded in the API and its database file is persisted in a named Docker volume.
+
+When using Docker Compose, the .NET SDK does not need to be installed on the host because the SDK and runtime are provided by the Docker images.
+
+### Stop the Docker application
+
+Stop the containers while keeping the persisted data:
+
+```powershell
+docker compose down
+```
+
+To also delete the persisted SQLite database and start from a clean state:
+
+```powershell
+docker compose down -v
+```
+
+## CI, SBOM and CD
+
+The automation is split into three independent workflows.
+
+### CI
+
+Every push and pull request runs:
+
+```text
+Restore dependencies
+        ↓
+Build
+        ↓
+Run automated tests
+        ↓
+Build Docker images
+```
+
+The Docker images are built for verification only and are not published by CI.
+
+### SBOM
+
+Pushing a version tag such as `v1.0.0` generates a CycloneDX SBOM and uploads it as a GitHub Actions artifact.
+
+```text
+v1.0.0
+  ↓
+Generate CycloneDX SBOM
+  ↓
+Upload bom.json
+```
+
+### CD
+
+The same version tag independently triggers the CD workflow:
+
+```text
+v1.0.0
+  ↓
+Build API and Web Docker images
+  ↓
+Push images to GitHub Container Registry
+```
+
+The published images are:
+
+```text
+ghcr.io/yvvvan/coding-challenge-devops-api:<version>
+ghcr.io/yvvvan/coding-challenge-devops-web:<version>
+```
+
+Version-tag releases also publish the `latest` tag. Each image additionally receives a commit-SHA tag for traceability.
+
 ## Demo accounts
 
 Two demo users are configured for local development:
@@ -95,15 +223,3 @@ dotnet test .\tests\CodingChallenge.Tests\CodingChallenge.Tests.csproj --configu
 | --- | --- |
 | Web | http://localhost:5001 |
 | API | http://localhost:5220 |
-
-The Web application is configured to call the API at `http://localhost:5220`.
-
-## Stop the application
-
-Press:
-
-```text
-Ctrl+C
-```
-
-in each PowerShell terminal running the API or Web application.
