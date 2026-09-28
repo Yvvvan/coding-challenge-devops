@@ -4,17 +4,20 @@ SMT order management application built with ASP.NET Core, Blazor, Entity Framewo
 
 ## Prerequisites
 
-Install:
+### Install .NET SDK 10
 
-- .NET SDK 10
+Open PowerShell as Administrator and install the .NET 10 SDK with WinGet:
 
-Verify the .NET installation in PowerShell:
+```powershell
+winget install Microsoft.DotNet.SDK.10 --source winget
+```
+
+After installation, open a new PowerShell window and verify the installed SDK:
 
 ```powershell
 dotnet --version
 ```
 
-The project expects a .NET 10 SDK.
 
 ## Run the application locally
 
