@@ -181,7 +181,20 @@ Upload bom.json
 Build API and Web Docker images
  ↓
 Push images to GitHub Container Registry
+ ↓
+Apply OpenShift manifests
+ ↓
+Roll out and verify the deployment
 ```
+
+The OpenShift deployment runs as the final job of `pipeline.yml` and uses the GitHub Environment `OPENSHIFT_PTODUCTION` with:
+
+- Environment secret: `OPENSHIFT_TOKEN`
+- Environment variables: `OPENSHIFT_SERVER`, `OPENSHIFT_NAMESPACE`
+
+The deployment job installs the OpenShift CLI, logs in with `oc login`, applies the manifests, and verifies the rollout. Keeping this job in the top-level pipeline ensures the environment-scoped token is available directly to the deployment job.
+
+The manifests in `.openshift/api.yml` and `.openshift/web.yml` define the API, Web application, services, public route, and persistent SQLite storage.
 
 The CI, SBOM, and CD workflows are reusable and can also be started independently from GitHub Actions.
 
@@ -194,7 +207,7 @@ ghcr.io/yvvvan/coding-challenge-devops-web:<version>
 
 Version-tag releases also publish the `latest` tag. Each image additionally receives a commit-SHA tag for traceability.
 
-A manually started CD workflow publishes images with a `manual-<run-number>` tag.
+A manually started CD workflow publishes images with a `manual-<run-number>` tag and refreshes `latest`. To run the complete flow including OpenShift deployment manually, start the main Pipeline workflow.
 
 ## Demo accounts
 

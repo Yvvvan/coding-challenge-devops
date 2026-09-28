@@ -33,3 +33,47 @@ jobs:
       contents: read
       packages: write
     uses: ./.github/workflows/cd.yml
+
+  deploy-openshift:
+    name: Deploy to OpenShift
+    needs: cd
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: OPENSHIFT_PTODUCTION
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: "4.19"
+
+      - name: Login to OpenShift
+        env:
+          OPENSHIFT_TOKEN: ${{ secrets.OPENSHIFT_TOKEN }}
+          OPENSHIFT_SERVER: ${{ vars.OPENSHIFT_SERVER }}
+        run: oc login --token="$OPENSHIFT_TOKEN" --server="$OPENSHIFT_SERVER"
+
+      - name: Select OpenShift project
+        run: oc project "${{ vars.OPENSHIFT_NAMESPACE }}"
+
+      - name: Apply OpenShift manifests
+        run: |
+          oc apply -f .openshift/api.yml
+          oc apply -f .openshift/web.yml
+
+      - name: Roll out latest images
+        run: |
+          oc rollout restart deployment/coding-challenge-api
+          oc rollout restart deployment/coding-challenge-web
+
+      - name: Verify deployment
+        run: |
+          oc rollout status deployment/coding-challenge-api --timeout=180s
+          oc rollout status deployment/coding-challenge-web --timeout=180s
+
+      - name: Show application route
+        run: oc get route coding-challenge-web
